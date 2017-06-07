@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
             //启动定位
             mLocationClient.startLocation();
             Log.d("Location","country****"+mLocationClient.getLastKnownLocation().getCountry());
-            Toast.makeText(this,mLocationClient.getLastKnownLocation().getCountry()+"",Toast.LENGTH_LONG).show();
+            Toast.makeText(this,mLocationClient.getLastKnownLocation().getCountry()+"",Toast.LENGTH_SHORT).show();
         } else {
             //授权失败
         }
@@ -119,16 +119,16 @@ public class MainActivity extends AppCompatActivity {
                     mLocationClient.setLocationOption(mLocationOption);
                     //启动定位
                     mLocationClient.startLocation();
-                    Toast.makeText(this,mLocationClient.getLastKnownLocation().getCountry()+"",Toast.LENGTH_LONG).show();
+                    Toast.makeText(this,mLocationClient.getLastKnownLocation().getCountry()+"",Toast.LENGTH_SHORT).show();
                 }
 
                 break;
             case R.id.button1:
                 Log.d("IPaddress","IPaddress****"+getIPAddress(this));
                 if (CNIPRecognizer.isCNIP(getIpAddressString())){
-                    Toast.makeText(this,"Native user!",Toast.LENGTH_LONG).show();
+                    Toast.makeText(this,"Native user!",Toast.LENGTH_SHORT).show();
                 }else {
-                    Toast.makeText(this,"foreign user!",Toast.LENGTH_LONG).show();
+                    Toast.makeText(this,"foreign user!",Toast.LENGTH_SHORT).show();
                 }
                 break;
             case R.id.button2:
