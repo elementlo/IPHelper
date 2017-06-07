@@ -21,11 +21,22 @@ import com.amap.api.location.AMapLocationClient;
 import com.amap.api.location.AMapLocationClientOption;
 import com.amap.api.location.AMapLocationListener;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.converter.scalars.ScalarsConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -35,16 +46,30 @@ public class MainActivity extends AppCompatActivity {
     public AMapLocationListener mLocationListener = new AMapLocationListener() {
         @Override
         public void onLocationChanged(AMapLocation aMapLocation) {
-            Log.d("Location","country****"+aMapLocation.getCountry());
+            Log.d("Location","country****"+aMapLocation.getCountry()+aMapLocation.getCity());
         }
     };
     public AMapLocationClientOption mLocationOption = null;
+
+    private Retrofit retrofit;
+    private Call<String> call;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initAmap();
+        initHttpClient();
+    }
+
+    private void initHttpClient() {
+        retrofit=new Retrofit.Builder()
+                .baseUrl("http://restapi.amap.com/")
+                //.addConverterFactory(GsonConverterFactory.create())
+                .addConverterFactory(ScalarsConverterFactory.create())
+                .build();
+        RetrofitInterface.IPWebService ipWebService=retrofit.create(RetrofitInterface.IPWebService.class);
+        call=ipWebService.getString("e7352ee2e9cf8773280d291466a956a5");
     }
 
     private void initAmap() {
@@ -59,18 +84,22 @@ public class MainActivity extends AppCompatActivity {
         //获取一次定位结果：
         //该方法默认为false。
         mLocationOption.setOnceLocation(true);
+        //关闭缓存机制
+        mLocationOption.setLocationCacheEnable(false);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        if (grantResults.length == 2 && grantResults[0] == PackageManager.PERMISSION_GRANTED&&grantResults[1]==
+                PackageManager.PERMISSION_GRANTED) {
             //授权成功
             //给定位客户端对象设置定位参数
             mLocationClient.setLocationOption(mLocationOption);
             //启动定位
             mLocationClient.startLocation();
             Log.d("Location","country****"+mLocationClient.getLastKnownLocation().getCountry());
+            Toast.makeText(this,mLocationClient.getLastKnownLocation().getCountry()+"",Toast.LENGTH_LONG).show();
         } else {
             //授权失败
         }
@@ -80,13 +109,17 @@ public class MainActivity extends AppCompatActivity {
         switch (v.getId()) {
             case R.id.button:
                 if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                        != PackageManager.PERMISSION_GRANTED&&ContextCompat.checkSelfPermission(this,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE)
                         != PackageManager.PERMISSION_GRANTED)
                 {
-                    ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},0);
+                    ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.
+                            ACCESS_COARSE_LOCATION,Manifest.permission.WRITE_EXTERNAL_STORAGE},0);
                 }else {
                     mLocationClient.setLocationOption(mLocationOption);
                     //启动定位
                     mLocationClient.startLocation();
+                    Toast.makeText(this,mLocationClient.getLastKnownLocation().getCountry()+"",Toast.LENGTH_LONG).show();
                 }
 
                 break;
@@ -97,6 +130,36 @@ public class MainActivity extends AppCompatActivity {
                 }else {
                     Toast.makeText(this,"foreign user!",Toast.LENGTH_LONG).show();
                 }
+                break;
+            case R.id.button2:
+                call.clone().enqueue(new Callback<String>() {
+                    @Override
+                    public void onResponse(Call<String> call, Response<String> response) {
+                        Log.e("===","return:"+response.body().toString());
+                        try {
+                            if (new JSONObject(response.body().toString()).get("city")!=null){
+                                String city=new JSONObject(response.body().toString()).get("city").toString();
+                                Toast.makeText(MainActivity.this,"Native user!  "+city,Toast.LENGTH_SHORT).show();
+                            }else {
+                                Toast.makeText(MainActivity.this,"foreign user!",Toast.LENGTH_SHORT).show();
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+    /*                    if (response.body().getCity()==null){
+                            Toast.makeText(MainActivity.this,"foreign user!",Toast.LENGTH_SHORT).show();
+
+                        }else {
+                            Toast.makeText(MainActivity.this,"Native user!  "+response.body().getCity(),Toast.LENGTH_SHORT).show();
+                        }*/
+                    }
+
+                    @Override
+                    public void onFailure(Call<String> call, Throwable t) {
+                        Log.e("===","失败"+t.getMessage());
+                        Toast.makeText(MainActivity.this,t.getMessage(),Toast.LENGTH_SHORT).show();
+                    }
+                });
                 break;
         }
     }
